@@ -4,87 +4,38 @@ namespace app\controllers;
 
 use app\models\Photo;
 use Yii;
+use yii\helpers\Json;
 use yii\web\Controller;
-use yii\web\Response;
 
 class SiteController extends Controller
 {
-    private Photo $photoModel;
-
-    public function __construct($id, $module, Photo $photoModel, $config = [])
+    public function actionIndex()
     {
-        $this->photoModel = $photoModel;
-        parent::__construct($id, $module, $config);
+        return $this->render('site/index', $this->getRandomPhoto());
     }
 
-    /**
-     * {@inheritdoc}
-     */
-    public function actions()
+    public function actionAjax()
     {
-        return [
-            'error' => [
-                'class' => 'yii\web\ErrorAction',
-            ],
-        ];
-    }
+        $photo = new Photo();
+        $photo->id = $this->getRequest()->post('id');
+        $photo->status = Photo::getStatus($this->getRequest()->post('status'));
+        $photo->save();
 
-    /**
-     * @return string
-     */
-    public function actionIndex(): string
-    {
-        return $this->renderAjax('index', [
-            'photo' => $this->view->params['randomPhoto'],
+        // Вернуть новую картинку
+        return Json::encode([
+            $this->getRandomPhoto()
         ]);
     }
 
-    /**
-     * @return array
-     */
-    public function actionAjax(): array
+    private function getRandomPhoto()
     {
-        $action = $this->request->post('action');
-        $photo = $this->view->params['randomPhoto'];
-
-        if ($action === 'approve') {
-            $photo->approve();
-        } elseif ($action === 'reject') {
-            $photo->reject();
-        }
-
-        $photo = $this->photoModel
-            ->find()
-            ->where(['approved' => false, 'rejected' => false])
-            ->orderBy('RAND()')
-            ->one();
+        // надо заменить бы на DTO, в угоду скорости разработки - массив
+        $newPhotoUrl = Yii::$app->request->get('https://picsum.photos/seed/picsum/600/500');
 
         return [
-            'photoUrl' => $photo->getImageUrl(),
-            'imageId' => $photo->id,
-            'width' => $photo->width,
-            'height' => $photo->height,
+            'photo' => $newPhotoUrl,
+            'id' => explode('/', $newPhotoUrl)[2],
         ];
     }
-
-    public function beforeAction($action)
-    {
-        $this->view->params['randomPhoto'] = $this->photoModel
-            ->find()
-            ->where(['approved' => false, 'rejected' => false])
-            ->orderBy('RAND()')
-            ->one();
-
-        return parent::beforeAction($action);
-    }
-
-    public function afterAction($action, $result)
-    {
-        if ($this->request->isAjax) {
-            Yii::$app->response->format = Response::FORMAT_JSON;
-            return $result;
-        }
-
-        return parent::afterAction($action, $result);
-    }
 }
+

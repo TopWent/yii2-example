@@ -1,39 +1,49 @@
 <?php
-
-use yii\helpers\Html;
-
-/* @var $this yii\web\View */
-/* @var $photo app\models\Photo */
-
-$this->title = 'Random Photo';
+/** @var string $newPhotoUrl */
+/** @var string $id */
 ?>
 
-<div class="site-index">
-    <h1><?= Html::encode($this->title) ?></h1>
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Картинка</title>
+</head>
+<body>
+<img src="<?= $newPhotoUrl ?>" alt="Картинка" id="<?= $id ?>" class="photo">
 
-    <?= Html::img($photo->getImageUrl(), ['id' => 'randomPhoto']) ?>
+<button class="btn btn-danger" onclick="reject()">Reject</button>
+<button class="btn btn-success" onclick="approve()">Approve</button>
+<!--На скорую руку добавим логику кнопок-->
+<script>
+    function reject() {
+        $.ajax({
+            url: '/index.php?r=site/ajax',
+            data: {
+                id: document.querySelector('.photo').id,
+                status: 'reject'
+            },
+            success: function(data) {
+                let img = document.querySelector('.photo');
+                img.src = data.photo;
+                img.id = data.id
+            },
+        });
+    }
 
-    <button class="btn btn-danger" onclick="sendDecision('reject')">Reject</button>
-    <button class="btn btn-success" onclick="sendDecision('approve')">Approve</button>
-
-    <?php
-    $script = <<< JS
-        function sendDecision(action) {
-            $.ajax({
-                url: '/site/ajax',
-                type: 'POST',
-                data: { action: action },
-                dataType: 'json',
-                success: function (data) {
-                    $('#randomPhoto').attr('src', data.photoUrl).attr('width', data.width).attr('height', data.height);
-                },
-                error: function () {
-                    alert('Error occurred while processing the decision.');
-                }
-            });
-        }
-    JS;
-
-    $this->registerJs($script, \yii\web\View::POS_END);
-    ?>
-</div>
+    function approve() {
+        $.ajax({
+            url: '/index.php?r=site/ajax',
+            data: {
+                id: <?= $id ?>,
+                status: 'approve'
+            },
+            success: function(data) {
+                let img = document.querySelector('.photo');
+                img.src = data.photo;
+                img.id = data.id
+            },
+        });
+    }
+</script>
+</body>
+</html>
